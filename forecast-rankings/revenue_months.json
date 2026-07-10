@@ -1,0 +1,40 @@
+{
+  "current": "revenue_jun_2026",
+  "ytd": {
+    "id": "revenue_ytd_2026",
+    "label": "YTD 2026",
+    "file": "revenue_ytd_2026.json"
+  },
+  "months": [
+    {
+      "id": "revenue_jun_2026",
+      "label": "June 2026",
+      "file": "revenue_jun_2026.json"
+    },
+    {
+      "id": "revenue_may_2026",
+      "label": "May 2026",
+      "file": "revenue_may_2026.json"
+    },
+    {
+      "id": "revenue_apr_2026",
+      "label": "April 2026",
+      "file": "revenue_apr_2026.json"
+    },
+    {
+      "id": "revenue_mar_2026",
+      "label": "March 2026",
+      "file": "revenue_mar_2026.json"
+    },
+    {
+      "id": "revenue_feb_2026",
+      "label": "February 2026",
+      "file": "revenue_feb_2026.json"
+    },
+    {
+      "id": "revenue_jan_2026",
+      "label": "January 2026",
+      "file": "revenue_jan_2026.json"
+    }
+  ]
+}

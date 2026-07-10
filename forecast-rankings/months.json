@@ -1,0 +1,40 @@
+{
+  "current": "jun_2026",
+  "ytd": {
+    "id": "ytd_2026",
+    "label": "YTD 2026",
+    "file": "ytd_2026.json"
+  },
+  "months": [
+    {
+      "id": "jun_2026",
+      "label": "June 2026",
+      "file": "jun_2026.json"
+    },
+    {
+      "id": "may_2026",
+      "label": "May 2026",
+      "file": "may_2026.json"
+    },
+    {
+      "id": "apr_2026",
+      "label": "April 2026",
+      "file": "apr_2026.json"
+    },
+    {
+      "id": "mar_2026",
+      "label": "March 2026",
+      "file": "mar_2026.json"
+    },
+    {
+      "id": "feb_2026",
+      "label": "February 2026",
+      "file": "feb_2026.json"
+    },
+    {
+      "id": "jan_2026",
+      "label": "January 2026",
+      "file": "jan_2026.json"
+    }
+  ]
+}
