@@ -1933,8 +1933,10 @@
     <div class="login-card" role="dialog" aria-label="Login">
       <span class="lock-icon" aria-hidden="true"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
       <h2>Forecast Rankings</h2>
-      <p class="login-sub">Enter the password to view the report</p>
+      <p class="login-sub">Enter your company email and the password to view the report</p>
       <div class="login-input-group">
+        <label for="login-email" class="sr-only">Company email</label>
+        <input type="email" id="login-email" placeholder="you@chaivision.com" autocomplete="email" style="margin-bottom:12px;" />
         <label for="login-password" class="sr-only">Password</label>
         <input type="password" id="login-password" placeholder="Enter password..." autocomplete="off" />
         <div class="login-error-msg" id="login-error" role="alert">Incorrect password. Try again.</div>
@@ -3972,8 +3974,10 @@
 
     async function attemptLogin() {
       const input = document.getElementById('login-password');
+      const emailInput = document.getElementById('login-email');
       const errorMsg = document.getElementById('login-error');
       const loginBtn = document.getElementById('login-btn');
+      const userEmail = (emailInput.value || '').trim().toLowerCase();
 
       const showLoginError = (message) => {
         errorMsg.textContent = message;
@@ -3983,6 +3987,15 @@
         loginBtn.disabled = false;
         loginBtn.textContent = 'Unlock Report';
       };
+
+      if (!/^[a-z0-9._%+-]+@chaivision\.com$/.test(userEmail)) {
+        emailInput.classList.add('error');
+        setTimeout(() => emailInput.classList.remove('error'), 500);
+        errorMsg.textContent = 'Enter your @chaivision.com email to continue.';
+        errorMsg.classList.add('visible');
+        return;
+      }
+      emailInput.classList.remove('error');
 
       // Loading state
       loginBtn.disabled = true;
@@ -4003,10 +4016,12 @@
         input.classList.remove('error');
         const loginScreen = document.getElementById('login-screen');
         loginScreen.classList.add('exiting');
+        try { localStorage.setItem('fr_user_email', userEmail); } catch (e) {}
         setTimeout(async () => {
           try {
             await loadAllData();
             loginScreen.style.display = 'none';
+            if (window.FRTrack) FRTrack.start(userEmail);
             showLanding();
           } catch (err) {
             console.error('Data load failed:', err);
@@ -4023,6 +4038,14 @@
     document.getElementById('login-password').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') attemptLogin();
     });
+    document.getElementById('login-email').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') attemptLogin();
+    });
+    // Remember the user's email per device so they only type it once
+    try {
+      const savedEmail = localStorage.getItem('fr_user_email');
+      if (savedEmail) document.getElementById('login-email').value = savedEmail;
+    } catch (e) {}
 
     // Keyboard support for landing hero cards
     document.querySelectorAll('.landing-hero-card[role="button"]').forEach(card => {
@@ -4056,6 +4079,56 @@
 
     // ===== INIT =====
     // Data loads after successful login
+  </script>
+  <script>
+    // ===== USAGE TRACKING (Supabase, fail-safe: never blocks the dashboard) =====
+    window.FRTrack = (function () {
+      const URL = 'https://ebardgekhelbaoiwzwmu.supabase.co/rest/v1/fr_usage_events';
+      const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViYXJkZ2VraGVsYmFvaXd6d211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzM4MzksImV4cCI6MjA3MTgwOTgzOX0.9DAaE4c4C8HOaNcV7J3xhfdTc85Drc2fKnLTs_4lk0w';
+      let email = null, sid = null, view = 'landing', lastType = 'forecast', lastMonth = 'ytd';
+      function send(rows, keepalive) {
+        try {
+          fetch(URL, {
+            method: 'POST', keepalive: !!keepalive,
+            headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+            body: JSON.stringify(rows)
+          }).catch(function () {});
+        } catch (e) {}
+      }
+      function ev(event, extra) {
+        if (!email) return;
+        send([Object.assign({ email: email, session_id: sid, event: event, view: view,
+          ua: (navigator.userAgent || '').slice(0, 300) }, extra || {})], event === 'session_end');
+      }
+      function nav(v) { if (v && v !== view) { view = v; ev('view'); } }
+      function wrap() {
+        try {
+          const _land = window.showLanding;
+          window.showLanding = function () { nav('landing'); return _land.apply(this, arguments); };
+          const _full = window.showFullRankings;
+          window.showFullRankings = function (t) { lastType = t || 'forecast'; lastMonth = 'ytd'; nav(lastType + ':ytd'); return _full.apply(this, arguments); };
+          const _sw = window.switchMonth;
+          window.switchMonth = function (id) { lastMonth = id; nav(lastType + ':' + id); return _sw.apply(this, arguments); };
+          const _det = window.showDetail;
+          window.showDetail = function (ch) { const r = _det.apply(this, arguments); nav('detail:' + ch); return r; };
+          const _rank = window.showRanking;
+          window.showRanking = function () { nav(lastType + ':' + lastMonth); return _rank.apply(this, arguments); };
+        } catch (e) {}
+      }
+      function beat() { if (document.visibilityState === 'visible') ev('heartbeat', { seconds: 20 }); }
+      function start(userEmail) {
+        if (email) return;
+        email = userEmail;
+        sid = 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        ev('session_start');
+        setInterval(beat, 20000);
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'hidden') ev('session_end', { seconds: 0 });
+        });
+        wrap();
+      }
+      return { start: start, nav: nav };
+    })();
   </script>
 </body>
 </html>
